@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Snake Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+            font-family: Arial;
+        }
+
+        canvas {
+            background: black;
+            max-width: 90vw;
+            max-height: 90vw;
+            touch-action: none;
+        }
+
+        h1 {
+            margin: 10px;
+        }
+
+        #score {
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Snake 🐍</h1>
+<p id="score">Score: 0</p>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// responsive size
+let size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+canvas.width = size;
+canvas.height = size;
+
+const grid = 20;
+let snake = [{x: 160, y: 160}];
+let dx = grid;
+let dy = 0;
+
+let food = randomFood();
+let score = 0;
+
+function randomFood() {
+    return {
+        x: Math.floor(Math.random() * (canvas.width / grid)) * grid,
+        y: Math.floor(Math.random() * (canvas.height / grid)) * grid
+    };
+}
+
+// GAME LOOP (smooth)
+let lastTime = 0;
+const speed = 120;
+
+function gameLoop(time) {
+    if (time - lastTime > speed) {
+        update();
+        lastTime = time;
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+// GAME LOGIC
+function update() {
+    let head = {
+        x: snake[0].x + dx,
+        y: snake[0].y + dy
+    };
+
+    // wall collision
+    if (head.x < 0 || head.x >= canvas.width ||
+        head.y < 0 || head.y >= canvas.height) {
+        resetGame();
+        return;
+    }
+
+    // self collision
+    for (let s of snake) {
+        if (head.x === s.x && head.y === s.y) {
+            resetGame();
+            return;
+        }
+    }
+
+    snake.unshift(head);
+
+    // eat food
+    if (head.x === food.x && head.y === food.y) {
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+        food = randomFood();
+    } else {
+        snake.pop();
+    }
+
+    draw();
+}
+
+// DRAW
+function draw() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // food
+    ctx.fillStyle = "red";
+    ctx.fillRect(food.x, food.y, grid - 2, grid - 2);
+
+    // snake
+    ctx.fillStyle = "lime";
+    snake.forEach(s => {
+        ctx.fillRect(s.x, s.y, grid - 2, grid - 2);
+    });
+}
+
+// RESET
+function resetGame() {
+    snake = [{x: 160, y: 160}];
+    dx = grid;
+    dy = 0;
+    score = 0;
+    document.getElementById("score").innerText = "Score: 0";
+}
+
+// KEYBOARD (desktop still works)
+document.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" && dx === 0) {
+        dx = -grid; dy = 0;
+    } else if (e.key === "ArrowUp" && dy === 0) {
+        dx = 0; dy = -grid;
+    } else if (e.key === "ArrowRight" && dx === 0) {
+        dx = grid; dy = 0;
+    } else if (e.key === "ArrowDown" && dy === 0) {
+        dx = 0; dy = grid;
+    }
+});
+
+// SWIPE CONTROLS
+let startX = 0;
+let startY = 0;
+
+canvas.addEventListener("touchstart", e => {
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+});
+
+canvas.addEventListener("touchend", e => {
+    const touch = e.changedTouches[0];
+    let dxSwipe = touch.clientX - startX;
+    let dySwipe = touch.clientY - startY;
+
+    if (Math.abs(dxSwipe) > Math.abs(dySwipe)) {
+        if (dxSwipe > 0 && dx === 0) {
+            dx = grid; dy = 0;
+        } else if (dxSwipe < 0 && dx === 0) {
+            dx = -grid; dy = 0;
+        }
+    } else {
+        if (dySwipe > 0 && dy === 0) {
+            dx = 0; dy = grid;
+        } else if (dySwipe < 0 && dy === 0) {
+            dx = 0; dy = -grid;
+        }
+    }
+});
+
+// start game
+requestAnimationFrame(gameLoop);
+</script>
+
+</body>
+</html>
